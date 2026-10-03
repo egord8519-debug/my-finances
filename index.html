@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Финансы & Инвестиции</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Финансы">
+    <link rel="apple-touch-icon" href="/static/icon.png">
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        dark: {
+                            950: '#070a12',
+                            900: '#0b0f19',
+                            850: '#0f172a',
+                            800: '#161f33',
+                            700: '#23304c',
+                            600: '#334155'
+                        },
+                        usd: '#10b981',
+                        try: '#f43f5e',
+                        kzt: '#0ea5e9',
+                        inv: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js & Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Alpine.js Core & App Script -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    <script src="/static/app.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        body {
+            background-color: #070a12;
+            color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        .glow-card {
+            background: radial-gradient(120% 120% at 50% -20%, rgba(30, 41, 59, 0.45) 0%, rgba(11, 15, 25, 0.8) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .glow-primary {
+            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+        }
+        .glow-purple {
+            box-shadow: 0 0 35px -5px rgba(139, 92, 246, 0.25);
+        }
+        .glow-blue {
+            box-shadow: 0 0 35px -5px rgba(14, 165, 233, 0.25);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 1rem);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-dark-950 font-sans antialiased text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300" x-data="app">
+
+    <!-- ========================================== -->
+    <!-- PIN LOCK SCREEN (If PIN enabled & locked) -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="auth.hasPin && !auth.isAuthenticated" class="fixed inset-0 z-50 bg-dark-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm text-center">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                <i data-lucide="lock" class="w-10 h-10 text-emerald-400"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-white mb-2">Финансовый сейф</h1>
+            <p class="text-sm text-slate-400 mb-8">Введите ваш защитный PIN-код для входа</p>
+
+            <form @submit.prevent="submitPin" class="space-y-6">
+                <div>
+                    <input 
+                        type="password" 
+                        pattern="[0-9]*" 
+                        inputmode="numeric" 
+                        maxlength="8" 
+                        x-model="auth.pinInput"
+                        placeholder="••••" 
+                        autofocus
+                        class="w-full text-center text-3xl tracking-[0.5em] font-mono py-4 rounded-2xl bg-dark-900 border border-slate-700/60 text-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                    />
+                </div>
+
+                <div x-show="auth.error" class="text-rose-400 text-sm font-medium" x-text="auth.error"></div>
+
+                <button 
+                    type="submit"
+                    class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-dark-950 font-bold text-base shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span>Войти в систему</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MAIN APPLICATION CONTAINER -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="!auth.hasPin || auth.isAuthenticated" class="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-28 md:pb-12 flex-1">
+        
+        <!-- TOP APP HEADER -->
+        <header class="flex items-center justify-between py-3 mb-5 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-sky-500/20 to-purple-500/20 border border-emerald-500/30 flex items-center justify-center">
+                    <img src="/static/icon.svg" class="w-6 h-6" alt="Logo">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-base text-white">Мои Финансы</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">PRO</span>
+                    </div>
+                    <p class="text-xs text-slate-400">USD • TRY • KZT</p>
+                </div>
+            </div>
+
+            <!-- Currency Badges & Actions -->
+            <div class="flex items-center gap-2">
+                <!-- Base Currency Switcher -->
+                <div class="bg-dark-900/90 border border-slate-800 rounded-xl p-0.5 flex items-center text-xs font-semibold">
+                    <button 
+                        @click="setBaseCurrency('USD')" 
+                        :class="baseCurrency === 'USD' ? 'bg-emerald-500 text-dark-950 shadow-sm shadow-emerald-500/30' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                        <span>$</span><span class="hidden sm:inline">USD</span>
+                    </button>
+                    <button 
+                        @click="setBaseCurrency('TRY')" 
+                        :class="baseCurrency === 'TRY' ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                        <span>₺</span><span class="hidden sm:inline">TRY</span>
+                    </button>
+                    <button 
+                        @click="setBaseCurrency('KZT')" 
+                        :class="baseCurrency === 'KZT' ? 'bg-sky-500 text-dark-950 shadow-sm shadow-sky-500/30' : 'text-slate-400 hover:text-white'"
+                        class="px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                        <span>₸</span><span class="hidden sm:inline">KZT</span>
+                    </button>
+                </div>
+
+                <!-- Lock Button (If Pin is Set) -->
+                <template x-if="auth.hasPin">
+                    <button @click="lockApp" title="Заблокировать" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </button>
+                </template>
+            </div>
+        </header>
+
+        <!-- LIVE CURRENCY TICKER BAR -->
+        <div class="mb-5 overflow-x-auto scrollbar-none py-1">
+            <div class="flex items-center gap-3 text-xs min-w-max">
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-900/60 border border-slate-800/80 text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-slate-400">Курсы валют:</span>
+                </div>
+                <div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-dark-900/60 border border-slate-800/80 text-slate-300 font-mono">
+                    <span class="text-slate-400">1 USD =</span>
+                    <span class="text-rose-400 font-bold" x-text="(rates.TRY || 34.5).toFixed(2) + ' ₺'"></span>
+                </div>
+                <div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-dark-900/60 border border-slate-800/80 text-slate-300 font-mono">
+                    <span class="text-slate-400">1 USD =</span>
+                    <span class="text-sky-400 font-bold" x-text="(rates.KZT || 485).toFixed(2) + ' ₸'"></span>
+                </div>
+                <div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-dark-900/60 border border-slate-800/80 text-slate-300 font-mono">
+                    <span class="text-slate-400">1 TRY ≈</span>
+                    <span class="text-emerald-400 font-bold" x-text="((rates.KZT || 485) / (rates.TRY || 34.5)).toFixed(2) + ' ₸'"></span>
+                </div>
+                <button @click="setTab('settings')" class="text-xs text-slate-400 hover:text-emerald-400 underline underline-offset-4 ml-1 flex items-center gap-1">
+                    <i data-lucide="sliders" class="w-3 h-3"></i>
+                    <span>Курсы вручную</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: ГЛАВНАЯ (DASHBOARD) -->
+        <!-- ========================================== -->
+        <main x-show="activeTab === 'dashboard'" class="space-y-6">
+            
+            <!-- TOTAL WEALTH / NET WORTH HERO CARD -->
+            <div class="glow-card rounded-3xl p-6 sm:p-8 relative overflow-hidden glow-primary">
+                <div class="absolute -right-10 -bottom-10 w-56 h-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-10 -top-10 w-56 h-56 rounded-full bg-sky-500/10 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs sm:text-sm font-medium tracking-wide uppercase text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+                            Общий капитал (Все счета)
+                        </span>
+                        <span class="text-[11px] text-slate-400 font-mono bg-dark-950/60 px-2 py-0.5 rounded-lg border border-slate-800">
+                            Базовая: <b x-text="baseCurrency" class="text-white"></b>
+                        </span>
+                    </div>
+
+                    <!-- Main Dynamic Balance -->
+                    <div class="my-3">
+                        <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white font-sans" 
+                            x-text="formatMoney(dashboard.net_worth[baseCurrency], baseCurrency)">
+                        </h2>
+                    </div>
+
+                    <!-- Live Equivalents Row in 3 Currencies -->
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center sm:text-left">
+                        <div class="p-2 sm:p-3 rounded-2xl bg-dark-950/60 border border-slate-800/60">
+                            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold mb-0.5 flex items-center justify-center sm:justify-start gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                Доллары (USD)
+                            </div>
+                            <div class="text-xs sm:text-sm font-bold text-emerald-400 font-mono" x-text="formatMoney(dashboard.net_worth.USD, 'USD')"></div>
+                        </div>
+                        <div class="p-2 sm:p-3 rounded-2xl bg-dark-950/60 border border-slate-800/60">
+                            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold mb-0.5 flex items-center justify-center sm:justify-start gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                Лиры (TRY)
+                            </div>
+                            <div class="text-xs sm:text-sm font-bold text-rose-400 font-mono" x-text="formatMoney(dashboard.net_worth.TRY, 'TRY')"></div>
+                        </div>
+                        <div class="p-2 sm:p-3 rounded-2xl bg-dark-950/60 border border-slate-800/60">
+                            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold mb-0.5 flex items-center justify-center sm:justify-start gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                                Тенге (KZT)
+                            </div>
+                            <div class="text-xs sm:text-sm font-bold text-sky-400 font-mono" x-text="formatMoney(dashboard.net_worth.KZT, 'KZT')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK ACTION BUTTONS -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button @click="openAddTxModal('expense')" class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 active:scale-[0.98] transition-all flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-rose-300 font-semibold leading-tight">Расход</div>
+                        <div class="text-[10px] text-slate-400">Потратил</div>
+                    </div>
+                </button>
+
+                <button @click="openAddTxModal('income')" class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 active:scale-[0.98] transition-all flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-emerald-300 font-semibold leading-tight">Доход</div>
+                        <div class="text-[10px] text-slate-400">Получил</div>
+                    </div>
+                </button>
+
+                <button @click="openAddTxModal('investment')" class="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 active:scale-[0.98] transition-all flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-purple-300 font-semibold leading-tight">Вложение</div>
+                        <div class="text-[10px] text-slate-400">Отложил / Инвест</div>
+                    </div>
+                </button>
+
+                <button @click="openAddTxModal('transfer')" class="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 active:scale-[0.98] transition-all flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-sky-300 font-semibold leading-tight">Перевод</div>
+                        <div class="text-[10px] text-slate-400">Между счетами</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- PERSONAL MONTHLY ALLOWANCE: 50% CARD & 50% CASH TRACKER -->
+            <!-- ============================================================== -->
+            <div class="glow-card rounded-3xl p-5 sm:p-6 border border-slate-800 space-y-4 relative overflow-hidden glow-blue">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 flex items-center justify-center">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-bold text-white">Выделено на себя в месяц</h3>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                    50% Карта • 50% Наличка
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Автоматический учет расходов по карте и наличными</p>
+                        </div>
+                    </div>
+
+                    <button @click="openBudgetModal" class="px-3 py-1.5 rounded-xl bg-dark-900 border border-slate-700/80 hover:border-sky-500/50 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all">
+                        <i data-lucide="settings-2" class="w-3.5 h-3.5 text-sky-400"></i>
+                        <span>Настроить</span>
+                    </button>
+                </div>
+
+                <!-- Monthly Allowance Top Summary -->
+                <div class="p-3.5 rounded-2xl bg-dark-950/70 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Общая сумма на месяц</span>
+                        <div class="text-xl sm:text-2xl font-extrabold text-white font-mono" x-text="formatMoney(budget.amount, budget.currency)"></div>
+                    </div>
+
+                    <!-- Equivalents in 3 currencies -->
+                    <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+                        <div class="text-center sm:text-right">
+                            <span class="text-[9px] text-slate-500 block">Потрачено</span>
+                            <span class="font-bold text-rose-400" x-text="formatMoney(budget.total_spent, budget.currency)"></span>
+                        </div>
+                        <div class="text-center sm:text-right border-l border-slate-800 pl-3">
+                            <span class="text-[9px] text-slate-500 block">Всего осталось</span>
+                            <span class="font-bold text-emerald-400" x-text="formatMoney(budget.total_remaining, budget.currency)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2-COLUMNS: 50% CARD vs 50% CASH -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- 1. CARD HALF (50%) -->
+                    <div class="p-4 rounded-2xl bg-dark-950/80 border border-slate-800/80 hover:border-sky-500/40 transition-all space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center">
+                                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-white block">На Карте (50%)</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">Лимит: <b class="text-slate-200" x-text="formatMoney(budget.card_budget, budget.currency)"></b></span>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono font-bold" 
+                                  :class="budget.card_progress > 100 ? 'text-rose-400' : (budget.card_progress > 80 ? 'text-amber-400' : 'text-sky-400')"
+                                  x-text="budget.card_progress + '%'">
+                            </span>
+                        </div>
+
+                        <!-- Progress Bar Card -->
+                        <div class="w-full h-2 rounded-full bg-dark-900 border border-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500"
+                                 :class="budget.card_progress > 100 ? 'bg-rose-500' : (budget.card_progress > 80 ? 'bg-amber-400' : 'bg-sky-500')"
+                                 :style="`width: ${Math.min(budget.card_progress, 100)}%`">
+                            </div>
+                        </div>
+
+                        <!-- Stats Row -->
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-800/60 font-mono">
+                            <div>
+                                <span class="text-[10px] text-slate-500 block">Потрачено с карты</span>
+                                <span class="font-bold text-rose-400" x-text="formatMoney(budget.card_spent, budget.currency)"></span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-500 block">Остаток на карте</span>
+                                <span class="font-bold" :class="budget.card_remaining < 0 ? 'text-rose-400' : 'text-emerald-400'" x-text="formatMoney(budget.card_remaining, budget.currency)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Equivalents for Card Remaining -->
+                        <template x-if="budget.equivalents">
+                            <div class="text-[10px] text-slate-500 font-mono pt-1 text-center bg-dark-900/60 rounded-lg py-1 border border-slate-800/40">
+                                ≈ <span class="text-emerald-400" x-text="formatMoney(budget.equivalents.card_rem_USD, 'USD')"></span> •
+                                <span class="text-rose-400" x-text="formatMoney(budget.equivalents.card_rem_TRY, 'TRY')"></span> •
+                                <span class="text-sky-400" x-text="formatMoney(budget.equivalents.card_rem_KZT, 'KZT')"></span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- 2. CASH HALF (50%) -->
+                    <div class="p-4 rounded-2xl bg-dark-950/80 border border-slate-800/80 hover:border-emerald-500/40 transition-all space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                                    <i data-lucide="banknote" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-white block">В Наличных (50%)</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">Лимит: <b class="text-slate-200" x-text="formatMoney(budget.cash_budget, budget.currency)"></b></span>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono font-bold" 
+                                  :class="budget.cash_progress > 100 ? 'text-rose-400' : (budget.cash_progress > 80 ? 'text-amber-400' : 'text-emerald-400')"
+                                  x-text="budget.cash_progress + '%'">
+                            </span>
+                        </div>
+
+                        <!-- Progress Bar Cash -->
+                        <div class="w-full h-2 rounded-full bg-dark-900 border border-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500"
+                                 :class="budget.cash_progress > 100 ? 'bg-rose-500' : (budget.cash_progress > 80 ? 'bg-amber-400' : 'bg-emerald-500')"
+                                 :style="`width: ${Math.min(budget.cash_progress, 100)}%`">
+                            </div>
+                        </div>
+
+                        <!-- Stats Row -->
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-800/60 font-mono">
+                            <div>
+                                <span class="text-[10px] text-slate-500 block">Потрачено наличными</span>
+                                <span class="font-bold text-rose-400" x-text="formatMoney(budget.cash_spent, budget.currency)"></span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-500 block">Остаток налички</span>
+                                <span class="font-bold" :class="budget.cash_remaining < 0 ? 'text-rose-400' : 'text-emerald-400'" x-text="formatMoney(budget.cash_remaining, budget.currency)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Equivalents for Cash Remaining -->
+                        <template x-if="budget.equivalents">
+                            <div class="text-[10px] text-slate-500 font-mono pt-1 text-center bg-dark-900/60 rounded-lg py-1 border border-slate-800/40">
+                                ≈ <span class="text-emerald-400" x-text="formatMoney(budget.equivalents.cash_rem_USD, 'USD')"></span> •
+                                <span class="text-rose-400" x-text="formatMoney(budget.equivalents.cash_rem_TRY, 'TRY')"></span> •
+                                <span class="text-sky-400" x-text="formatMoney(budget.equivalents.cash_rem_KZT, 'KZT')"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- THIS MONTH SUMMARY CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Income -->
+                <div class="glow-card rounded-2xl p-4 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-medium">Доходы за месяц</span>
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-bold text-emerald-400 font-mono" x-text="formatMoney(dashboard.month_stats.income[baseCurrency], baseCurrency)"></div>
+                    <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                        <span x-text="formatMoney(dashboard.month_stats.income.USD, 'USD')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.income.TRY, 'TRY')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.income.KZT, 'KZT')"></span>
+                    </div>
+                </div>
+
+                <!-- Expense -->
+                <div class="glow-card rounded-2xl p-4 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-medium">Расходы за месяц</span>
+                        <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-bold text-rose-400 font-mono" x-text="formatMoney(dashboard.month_stats.expense[baseCurrency], baseCurrency)"></div>
+                    <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                        <span x-text="formatMoney(dashboard.month_stats.expense.USD, 'USD')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.expense.TRY, 'TRY')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.expense.KZT, 'KZT')"></span>
+                    </div>
+                </div>
+
+                <!-- Investment / Saved -->
+                <div class="glow-card rounded-2xl p-4 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400 font-medium">Отложено / Инвестиции</span>
+                        <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                            <i data-lucide="piggy-bank" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="text-xl font-bold text-purple-400 font-mono" x-text="formatMoney(dashboard.month_stats.investment[baseCurrency], baseCurrency)"></div>
+                    <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                        <span x-text="formatMoney(dashboard.month_stats.investment.USD, 'USD')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.investment.TRY, 'TRY')"></span> •
+                        <span x-text="formatMoney(dashboard.month_stats.investment.KZT, 'KZT')"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIMPLIFIED ACCOUNTS SECTION (КАРТА, НАЛИЧНЫЕ, НАКОПЛЕНИЯ) -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i data-lucide="wallet-cards" class="w-4 h-4 text-sky-400"></i>
+                        Счета (Карта и Наличные)
+                    </h3>
+                    <button @click="openAddAccountModal" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Добавить счет</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <template x-for="acc in dashboard.accounts" :key="acc.id">
+                        <div class="p-4 rounded-2xl bg-dark-900 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between relative group">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white" :style="`background-color: ${acc.color}30; border: 1px solid ${acc.color}60`">
+                                        <template x-if="acc.account_type === 'cash' || acc.name.includes('Налич')">
+                                            <i data-lucide="banknote" class="w-4 h-4 text-emerald-400"></i>
+                                        </template>
+                                        <template x-if="acc.account_type === 'savings' || acc.name.includes('Накопл')">
+                                            <i data-lucide="piggy-bank" class="w-4 h-4 text-purple-400"></i>
+                                        </template>
+                                        <template x-if="acc.account_type !== 'cash' && acc.account_type !== 'savings' && !acc.name.includes('Налич') && !acc.name.includes('Накопл')">
+                                            <i data-lucide="credit-card" class="w-4 h-4 text-sky-400"></i>
+                                        </template>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white" x-text="acc.name"></div>
+                                        <span class="text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold"
+                                              :class="{
+                                                'bg-emerald-500/20 text-emerald-400': acc.currency === 'USD',
+                                                'bg-rose-500/20 text-rose-400': acc.currency === 'TRY',
+                                                'bg-sky-500/20 text-sky-400': acc.currency === 'KZT'
+                                              }"
+                                              x-text="acc.currency">
+                                        </span>
+                                    </div>
+                                </div>
+                                <button @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all p-1">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <div class="text-xl font-bold text-white font-mono" x-text="formatMoney(acc.balance, acc.currency)"></div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">
+                                    ≈ <span x-text="formatMoney(acc[`equivalent_${baseCurrency.toLowerCase()}`], baseCurrency)"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- RECENT TRANSACTIONS ON DASHBOARD -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-purple-400"></i>
+                        Последние операции
+                    </h3>
+                    <button @click="setTab('transactions')" class="text-xs font-semibold text-sky-400 hover:text-sky-300">
+                        Смотреть все &rarr;
+                    </button>
+                </div>
+
+                <div class="glow-card rounded-2xl border border-slate-800 divide-y divide-slate-800/80 overflow-hidden">
+                    <template x-if="dashboard.recent_transactions.length === 0">
+                        <div class="p-8 text-center text-slate-500 text-sm">
+                            Операций пока нет. Нажмите «+ Расход» или «+ Доход», чтобы записать первую операцию!
+                        </div>
+                    </template>
+
+                    <template x-for="tx in dashboard.recent_transactions" :key="tx.id">
+                        <div class="p-3.5 sm:p-4 hover:bg-slate-800/30 transition-all flex items-start sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0"
+                                     :class="{
+                                        'bg-rose-500/20 text-rose-400 border border-rose-500/30': tx.type === 'expense',
+                                        'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': tx.type === 'income',
+                                        'bg-purple-500/20 text-purple-400 border border-purple-500/30': tx.type === 'investment',
+                                        'bg-sky-500/20 text-sky-400 border border-sky-500/30': tx.type === 'transfer'
+                                     }">
+                                    <template x-if="tx.type === 'expense'"><i data-lucide="arrow-up-right" class="w-5 h-5"></i></template>
+                                    <template x-if="tx.type === 'income'"><i data-lucide="arrow-down-left" class="w-5 h-5"></i></template>
+                                    <template x-if="tx.type === 'investment'"><i data-lucide="trending-up" class="w-5 h-5"></i></template>
+                                    <template x-if="tx.type === 'transfer'"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></template>
+                                </div>
+
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-sm font-bold text-white" x-text="tx.category_name || (tx.type === 'transfer' ? 'Перевод' : 'Операция')"></span>
+                                        <span class="text-[10px] text-slate-400 bg-dark-900 px-2 py-0.5 rounded-md border border-slate-800" x-text="tx.account_name || 'Счет'"></span>
+                                        <template x-if="tx.type === 'transfer' && tx.to_account_name">
+                                            <span class="text-[10px] text-sky-400 font-mono" x-text="'&rarr; ' + tx.to_account_name"></span>
+                                        </template>
+                                    </div>
+
+                                    <template x-if="tx.note">
+                                        <p class="text-xs text-slate-300 mt-1 bg-dark-950/70 px-2 py-1 rounded-md border border-slate-800/60 inline-block font-sans" x-text="tx.note"></p>
+                                    </template>
+
+                                    <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                                        <span x-text="tx.date"></span>
+                                        <span x-text="tx.time"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                <div class="text-sm sm:text-base font-bold font-mono"
+                                     :class="{
+                                        'text-rose-400': tx.type === 'expense',
+                                        'text-emerald-400': tx.type === 'income',
+                                        'text-purple-400': tx.type === 'investment',
+                                        'text-sky-400': tx.type === 'transfer'
+                                     }">
+                                    <span x-text="tx.type === 'expense' ? '-' : (tx.type === 'income' ? '+' : '')"></span>
+                                    <span x-text="formatMoney(tx.amount, tx.currency)"></span>
+                                </div>
+                                
+                                <div class="text-[11px] text-slate-500 font-mono mt-0.5">
+                                    ≈ <span x-text="formatMoney(tx[`equivalent_${baseCurrency.toLowerCase()}`], baseCurrency)"></span>
+                                </div>
+
+                                <button @click="deleteTx(tx.id)" class="text-slate-600 hover:text-rose-400 text-xs mt-1 transition-all">
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: ВСЕ ОПЕРАЦИИ (TRANSACTIONS) -->
+        <!-- ========================================== -->
+        <section x-show="activeTab === 'transactions'" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-white">Все операции и расходы</h2>
+                <button @click="openAddTxModal('expense')" class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Добавить</span>
+                </button>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="glow-card rounded-2xl p-4 border border-slate-800 space-y-3">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                    <input 
+                        type="text" 
+                        x-model="txFilter.search" 
+                        @input.debounce.300ms="loadTransactions"
+                        placeholder="Поиск по описанию или категории..."
+                        class="w-full pl-9 pr-4 py-2 rounded-xl bg-dark-900 border border-slate-700/60 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <select x-model="txFilter.type" @change="loadTransactions" class="bg-dark-900 border border-slate-700/60 rounded-xl px-3 py-1.5 text-slate-300 focus:outline-none">
+                        <option value="">Все типы</option>
+                        <option value="expense">Расходы</option>
+                        <option value="income">Доходы</option>
+                        <option value="investment">Вложения / Накопления</option>
+                        <option value="transfer">Переводы</option>
+                    </select>
+
+                    <select x-model="txFilter.currency" @change="loadTransactions" class="bg-dark-900 border border-slate-700/60 rounded-xl px-3 py-1.5 text-slate-300 focus:outline-none">
+                        <option value="">Все валюты</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="TRY">TRY (₺)</option>
+                        <option value="KZT">KZT (₸)</option>
+                    </select>
+
+                    <button @click="txFilter = { type: '', month: '', currency: '', search: '' }; loadTransactions()" class="text-slate-400 hover:text-white px-2 py-1.5 underline">
+                        Сбросить фильтры
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transactions List -->
+            <div class="glow-card rounded-2xl border border-slate-800 divide-y divide-slate-800/80 overflow-hidden">
+                <template x-if="transactions.length === 0">
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        Операций не найдено по заданным фильтрам
+                    </div>
+                </template>
+
+                <template x-for="tx in transactions" :key="tx.id">
+                    <div class="p-4 hover:bg-slate-800/30 transition-all flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                 :class="{
+                                    'bg-rose-500/20 text-rose-400 border border-rose-500/30': tx.type === 'expense',
+                                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': tx.type === 'income',
+                                    'bg-purple-500/20 text-purple-400 border border-purple-500/30': tx.type === 'investment',
+                                    'bg-sky-500/20 text-sky-400 border border-sky-500/30': tx.type === 'transfer'
+                                 }">
+                                <template x-if="tx.type === 'expense'"><i data-lucide="arrow-up-right" class="w-5 h-5"></i></template>
+                                <template x-if="tx.type === 'income'"><i data-lucide="arrow-down-left" class="w-5 h-5"></i></template>
+                                <template x-if="tx.type === 'investment'"><i data-lucide="trending-up" class="w-5 h-5"></i></template>
+                                <template x-if="tx.type === 'transfer'"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></template>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-sm font-bold text-white" x-text="tx.category_name || (tx.type === 'transfer' ? 'Перевод' : 'Операция')"></span>
+                                    <span class="text-[10px] text-slate-400 bg-dark-900 px-2 py-0.5 rounded-md border border-slate-800" x-text="tx.account_name || 'Счет'"></span>
+                                    <template x-if="tx.type === 'transfer' && tx.to_account_name">
+                                        <span class="text-[10px] text-sky-400 font-mono" x-text="'&rarr; ' + tx.to_account_name"></span>
+                                    </template>
+                                </div>
+
+                                <template x-if="tx.note">
+                                    <p class="text-xs text-slate-200 mt-1 bg-dark-950 px-2.5 py-1.5 rounded-lg border border-slate-800 text-slate-300" x-text="tx.note"></p>
+                                </template>
+
+                                <div class="text-[11px] text-slate-500 mt-1.5 flex items-center gap-2">
+                                    <span x-text="tx.date"></span>
+                                    <span x-text="tx.time"></span>
+                                </div>
+
+                                <div class="mt-2 text-[10px] font-mono text-slate-400 flex items-center gap-3">
+                                    <span>$ <b class="text-emerald-400" x-text="tx.equivalent_usd"></b></span>
+                                    <span>₺ <b class="text-rose-400" x-text="tx.equivalent_try"></b></span>
+                                    <span>₸ <b class="text-sky-400" x-text="tx.equivalent_kzt"></b></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <div class="text-base font-bold font-mono"
+                                 :class="{
+                                    'text-rose-400': tx.type === 'expense',
+                                    'text-emerald-400': tx.type === 'income',
+                                    'text-purple-400': tx.type === 'investment',
+                                    'text-sky-400': tx.type === 'transfer'
+                                 }">
+                                <span x-text="tx.type === 'expense' ? '-' : (tx.type === 'income' ? '+' : '')"></span>
+                                <span x-text="formatMoney(tx.amount, tx.currency)"></span>
+                            </div>
+
+                            <button @click="deleteTx(tx.id)" class="text-slate-600 hover:text-rose-400 text-xs mt-3 block ml-auto transition-all">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: АНАЛИТИКА (ANALYTICS & CHARTS) -->
+        <!-- ========================================== -->
+        <section x-show="activeTab === 'analytics'" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Аналитика и Графика</h2>
+                    <p class="text-xs text-slate-400">Наглядные отчеты в выбранной валюте: <b class="text-white" x-text="baseCurrency"></b></p>
+                </div>
+            </div>
+
+            <!-- Monthly Income vs Expense vs Investment Bar Chart -->
+            <div class="glow-card rounded-2xl p-5 border border-slate-800">
+                <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i>
+                    Динамика по месяцам (Доходы, Расходы, Накопления)
+                </h3>
+                <div class="h-64 sm:h-72 w-full">
+                    <canvas id="chartMonthly"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Spending by Category Doughnut -->
+                <div class="glow-card rounded-2xl p-5 border border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-rose-400"></i>
+                        Расходы по категориям
+                    </h3>
+                    <div class="h-60 w-full flex items-center justify-center">
+                        <canvas id="chartCategory"></canvas>
+                    </div>
+                </div>
+
+                <!-- Asset Allocation by Currency -->
+                <div class="glow-card rounded-2xl p-5 border border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                        <i data-lucide="coins" class="w-4 h-4 text-sky-400"></i>
+                        Распределение капитала по валютам
+                    </h3>
+                    <div class="h-60 w-full flex items-center justify-center">
+                        <canvas id="chartAllocation"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories breakdown table -->
+            <div class="glow-card rounded-2xl border border-slate-800 p-4">
+                <h3 class="text-sm font-bold text-slate-300 mb-3">Детализация по категориям</h3>
+                <div class="space-y-2">
+                    <template x-for="cat in analytics.categories_breakdown" :key="cat.name">
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-dark-900 border border-slate-800/60 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full" :style="`background-color: ${cat.color}`"></span>
+                                <span class="font-medium text-white" x-text="cat.name"></span>
+                            </div>
+                            <div class="flex items-center gap-3 font-mono">
+                                <span class="text-slate-400" x-text="cat.percent + '%'"></span>
+                                <span class="font-bold text-white" x-text="formatMoney(cat[`total_${baseCurrency.toLowerCase()}`], baseCurrency)"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: НАКОПЛЕНИЯ И ИНВЕСТИЦИИ (GOALS) -->
+        <!-- ========================================== -->
+        <section x-show="activeTab === 'goals'" class="space-y-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Инвестиции и Цели</h2>
+                    <p class="text-xs text-slate-400">Отслеживание накоплений, подушки безопасности и вложений</p>
+                </div>
+                <button @click="openAddGoalModal" class="px-3 py-1.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Новая цель</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="g in goals" :key="g.id">
+                    <div class="glow-card rounded-3xl p-5 border border-slate-800 space-y-4 relative overflow-hidden">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white" :style="`background-color: ${g.color}25; border: 1px solid ${g.color}50`">
+                                    <i data-lucide="target" class="w-5 h-5" :style="`color: ${g.color}`"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white" x-text="g.title"></h3>
+                                    <p class="text-xs text-slate-400" x-text="g.note || 'Финансовая цель'"></p>
+                                </div>
+                            </div>
+                            <button @click="deleteGoal(g.id)" class="text-slate-600 hover:text-rose-400 p-1">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div>
+                            <div class="flex items-baseline justify-between mb-1">
+                                <span class="text-xs text-slate-400 font-medium">Накоплено:</span>
+                                <span class="text-xs font-bold text-purple-400 font-mono" x-text="g.progress_percent + '%'"></span>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-lg font-extrabold text-white font-mono" x-text="formatMoney(g.current_amount, g.currency)"></span>
+                                <span class="text-xs text-slate-500 font-mono" x-text="'Цель: ' + formatMoney(g.target_amount, g.currency)"></span>
+                            </div>
+
+                            <div class="w-full h-2.5 rounded-full bg-dark-950 border border-slate-800 overflow-hidden mt-2">
+                                <div class="h-full rounded-full transition-all duration-500" :style="`width: ${g.progress_percent}%; background-color: ${g.color}`"></div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-800/80 text-[11px] font-mono grid grid-cols-3 gap-1 text-center bg-dark-950/40 p-2 rounded-xl">
+                            <div>
+                                <span class="text-slate-500 block text-[9px]">В долларах</span>
+                                <span class="text-emerald-400 font-bold" x-text="'$' + g.current_usd"></span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-[9px]">В лирах</span>
+                                <span class="text-rose-400 font-bold" x-text="g.current_try + ' ₺'"></span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-[9px]">В тенге</span>
+                                <span class="text-sky-400 font-bold" x-text="g.current_kzt + ' ₸'"></span>
+                            </div>
+                        </div>
+
+                        <button @click="openContributeModal(g)" class="w-full py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-bold text-xs border border-purple-500/30 transition-all flex items-center justify-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>Пополнить цель</span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: НАСТРОЙКИ, КУРСЫ И БЭКАП (SETTINGS) -->
+        <!-- ========================================== -->
+        <section x-show="activeTab === 'settings'" class="space-y-6">
+            <h2 class="text-lg font-bold text-white">Настройки и Инструменты</h2>
+
+            <!-- Currency Converter Calculator Card -->
+            <div class="glow-card rounded-2xl p-5 border border-slate-800 space-y-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-emerald-400"></i>
+                    <h3 class="text-sm font-bold text-white">Калькулятор и конвертер валют</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Сумма</label>
+                        <input 
+                            type="number" 
+                            step="any" 
+                            x-model="converter.amount" 
+                            class="w-full px-3 py-2 rounded-xl bg-dark-900 border border-slate-700 text-white font-mono text-base focus:outline-none focus:border-emerald-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Из валюты</label>
+                        <select x-model="converter.currency" class="w-full px-3 py-2 rounded-xl bg-dark-900 border border-slate-700 text-white font-semibold focus:outline-none">
+                            <option value="USD">USD ($)</option>
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="KZT">KZT (₸)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Conversion Output Cards -->
+                <div class="grid grid-cols-3 gap-2 pt-2">
+                    <div class="p-3 rounded-xl bg-dark-950 border border-slate-800 text-center">
+                        <span class="text-[10px] text-slate-400 block font-semibold">Доллары ($)</span>
+                        <span class="text-sm font-bold text-emerald-400 font-mono" x-text="formatMoney(getConvertedValues(converter.amount, converter.currency).USD, 'USD')"></span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-dark-950 border border-slate-800 text-center">
+                        <span class="text-[10px] text-slate-400 block font-semibold">Лиры (₺)</span>
+                        <span class="text-sm font-bold text-rose-400 font-mono" x-text="formatMoney(getConvertedValues(converter.amount, converter.currency).TRY, 'TRY')"></span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-dark-950 border border-slate-800 text-center">
+                        <span class="text-[10px] text-slate-400 block font-semibold">Тенге (₸)</span>
+                        <span class="text-sm font-bold text-sky-400 font-mono" x-text="formatMoney(getConvertedValues(converter.amount, converter.currency).KZT, 'KZT')"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Rates Setting -->
+            <div class="glow-card rounded-2xl p-5 border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-sky-400"></i>
+                        <h3 class="text-sm font-bold text-white">Курсы валют и ручная настройка</h3>
+                    </div>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" x-model="customRates.enabled" class="rounded text-emerald-500 bg-dark-900 border-slate-700">
+                        <span class="text-xs text-slate-300">Ручной курс</span>
+                    </label>
+                </div>
+
+                <p class="text-xs text-slate-400">По умолчанию курсы обновляются автоматически из биржевых источников. Если вы обменивали валюту по своему курсу, укажите его здесь:</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="customRates.enabled">
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Курс 1 USD в TRY (Турецкие лиры)</label>
+                        <input type="number" step="0.01" x-model="customRates.TRY" :placeholder="(rates.TRY || 34.5).toFixed(2)" class="w-full px-3 py-2 rounded-xl bg-dark-900 border border-slate-700 text-white font-mono">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Курс 1 USD в KZT (Казахские тенге)</label>
+                        <input type="number" step="0.01" x-model="customRates.KZT" :placeholder="(rates.KZT || 485).toFixed(2)" class="w-full px-3 py-2 rounded-xl bg-dark-900 border border-slate-700 text-white font-mono">
+                    </div>
+                </div>
+
+                <button @click="saveCustomRates" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-dark-950 font-bold text-xs transition-all">
+                    Сохранить настройки курсов
+                </button>
+            </div>
+
+            <!-- PIN Code Security Card -->
+            <div class="glow-card rounded-2xl p-5 border border-slate-800 space-y-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i>
+                    <h3 class="text-sm font-bold text-white">Безопасность и PIN-код</h3>
+                </div>
+
+                <template x-if="!auth.hasPin">
+                    <div class="space-y-3">
+                        <p class="text-xs text-slate-400">Установите PIN-код для защиты доступа к вашим финансам при открытии сайта.</p>
+                        <div class="flex gap-2 max-w-xs">
+                            <input type="password" maxlength="8" x-model="auth.newPinInput" placeholder="Новый PIN (от 4 цифр)" class="w-full px-3 py-2 rounded-xl bg-dark-900 border border-slate-700 text-white font-mono text-sm">
+                            <button @click="setupPin" class="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs shrink-0">
+                                Установить
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="auth.hasPin">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>PIN-код активен и защищает ваши данные</span>
+                        </div>
+                        <button @click="removePin" class="text-xs text-rose-400 hover:text-rose-300 underline">
+                            Отключить PIN
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Backup & Export -->
+            <div class="glow-card rounded-2xl p-5 border border-slate-800 space-y-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="w-5 h-5 text-emerald-400"></i>
+                    <h3 class="text-sm font-bold text-white">Резервное копирование данных</h3>
+                </div>
+                <p class="text-xs text-slate-400">Сохраняйте все ваши транзакции и балансы в один клик или восстанавливайте из резервной копии.</p>
+
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <button @click="exportBackup" class="px-4 py-2 rounded-xl bg-dark-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold text-xs flex items-center gap-2 transition-all">
+                        <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Скачать бэкап (JSON)</span>
+                    </button>
+
+                    <label class="px-4 py-2 rounded-xl bg-dark-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold text-xs flex items-center gap-2 cursor-pointer transition-all">
+                        <i data-lucide="upload" class="w-4 h-4 text-sky-400"></i>
+                        <span>Восстановить из файла</span>
+                        <input type="file" accept=".json" @change="importBackup" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- BOTTOM NAVIGATION BAR (MOBILE & DESKTOP) -->
+    <!-- ========================================== -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-dark-900/90 backdrop-blur-xl border-t border-slate-800/80 safe-bottom">
+        <div class="max-w-md mx-auto px-4 py-2 flex items-center justify-around">
+            <button @click="setTab('dashboard')" class="flex flex-col items-center gap-1 transition-all"
+                    :class="activeTab === 'dashboard' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold">Главная</span>
+            </button>
+
+            <button @click="setTab('transactions')" class="flex flex-col items-center gap-1 transition-all"
+                    :class="activeTab === 'transactions' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold">Операции</span>
+            </button>
+
+            <button @click="openAddTxModal('expense')" class="w-12 h-12 -mt-5 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-dark-950 font-extrabold flex items-center justify-center shadow-lg shadow-emerald-500/30 active:scale-95 transition-all">
+                <i data-lucide="plus" class="w-6 h-6 stroke-[2.5]"></i>
+            </button>
+
+            <button @click="setTab('analytics')" class="flex flex-col items-center gap-1 transition-all"
+                    :class="activeTab === 'analytics' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold">Аналитика</span>
+            </button>
+
+            <button @click="setTab('goals')" class="flex flex-col items-center gap-1 transition-all"
+                    :class="activeTab === 'goals' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'">
+                <i data-lucide="target" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold">Цели</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ========================================== -->
+    <!-- MODAL: ADD / EDIT TRANSACTION -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="modalOpen && modalType === 'transaction'" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div @click.away="closeModal" class="w-full max-w-lg bg-dark-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full"
+                          :class="{
+                            'bg-rose-500': txForm.type === 'expense',
+                            'bg-emerald-500': txForm.type === 'income',
+                            'bg-purple-500': txForm.type === 'investment',
+                            'bg-sky-500': txForm.type === 'transfer'
+                          }">
+                    </span>
+                    <span x-text="{
+                        'expense': 'Новый расход',
+                        'income': 'Новый доход',
+                        'investment': 'Вложение / Накопление',
+                        'transfer': 'Перевод между счетами'
+                    }[txForm.type]"></span>
+                </h3>
+                <button @click="closeModal" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Transaction Type Switcher Buttons -->
+            <div class="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-dark-950 border border-slate-800 text-xs font-semibold">
+                <button type="button" @click="txForm.type = 'expense'" :class="txForm.type === 'expense' ? 'bg-rose-500 text-white' : 'text-slate-400'" class="py-2 rounded-xl transition-all">Расход</button>
+                <button type="button" @click="txForm.type = 'income'" :class="txForm.type === 'income' ? 'bg-emerald-500 text-dark-950' : 'text-slate-400'" class="py-2 rounded-xl transition-all">Доход</button>
+                <button type="button" @click="txForm.type = 'investment'" :class="txForm.type === 'investment' ? 'bg-purple-500 text-white' : 'text-slate-400'" class="py-2 rounded-xl transition-all">Вложение</button>
+                <button type="button" @click="txForm.type = 'transfer'" :class="txForm.type === 'transfer' ? 'bg-sky-500 text-dark-950' : 'text-slate-400'" class="py-2 rounded-xl transition-all">Перевод</button>
+            </div>
+
+            <form @submit.prevent="submitTransaction" class="space-y-4">
+                <!-- Amount & Currency Selector -->
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Сумма операции</label>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <input 
+                                type="number" 
+                                step="any" 
+                                x-model="txForm.amount" 
+                                placeholder="0.00" 
+                                required
+                                autofocus
+                                class="w-full text-2xl font-bold font-mono px-4 py-3 rounded-2xl bg-dark-950 border border-slate-700/80 text-white focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                        <div class="flex gap-1 bg-dark-950 border border-slate-700/80 rounded-2xl p-1">
+                            <button type="button" @click="txForm.currency = 'USD'" :class="txForm.currency === 'USD' ? 'bg-emerald-500 text-dark-950 font-bold' : 'text-slate-400'" class="px-3 rounded-xl text-xs transition-all">$ USD</button>
+                            <button type="button" @click="txForm.currency = 'TRY'" :class="txForm.currency === 'TRY' ? 'bg-rose-500 text-white font-bold' : 'text-slate-400'" class="px-3 rounded-xl text-xs transition-all">₺ TRY</button>
+                            <button type="button" @click="txForm.currency = 'KZT'" :class="txForm.currency === 'KZT' ? 'bg-sky-500 text-dark-950 font-bold' : 'text-slate-400'" class="px-3 rounded-xl text-xs transition-all">₸ KZT</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Conversion Preview -->
+                    <template x-if="txForm.amount && parseFloat(txForm.amount) > 0">
+                        <div class="mt-2 text-xs font-mono text-slate-400 flex items-center justify-between bg-dark-950/60 p-2 rounded-xl border border-slate-800">
+                            <span>Эквивалент:</span>
+                            <div class="flex gap-3 font-semibold">
+                                <span class="text-emerald-400" x-text="'$' + getConvertedValues(txForm.amount, txForm.currency).USD"></span>
+                                <span class="text-rose-400" x-text="getConvertedValues(txForm.amount, txForm.currency).TRY + ' ₺'"></span>
+                                <span class="text-sky-400" x-text="getConvertedValues(txForm.amount, txForm.currency).KZT + ' ₸'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Account Selection -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">
+                            <span x-text="txForm.type === 'transfer' ? 'Откуда (Счет)' : 'Счет списания/пополнения'"></span>
+                        </label>
+                        <select x-model="txForm.account_id" required class="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none">
+                            <template x-for="acc in accounts" :key="acc.id">
+                                <option :value="acc.id" x-text="`${acc.name} (${acc.currency}) — ${formatMoney(acc.balance, acc.currency)}`"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <template x-if="txForm.type === 'transfer'">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Куда перевести (Счет)</label>
+                            <select x-model="txForm.to_account_id" required class="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none">
+                                <template x-for="acc in accounts" :key="acc.id">
+                                    <option :value="acc.id" x-text="`${acc.name} (${acc.currency})`"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </template>
+
+                    <template x-if="txForm.type !== 'transfer'">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Категория</label>
+                            <select x-model="txForm.category_id" class="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none">
+                                <template x-for="cat in categories.filter(c => c.type === txForm.type)" :key="cat.id">
+                                    <option :value="cat.id" x-text="cat.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </template>
+                </div>
+
+                <template x-if="txForm.type === 'investment' && goals.length > 0">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Привязать к финансовой цели (опционально)</label>
+                        <select x-model="txForm.goal_id" class="w-full px-3 py-2.5 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs font-semibold focus:outline-none">
+                            <option value="">Без привязки к конкретной цели</option>
+                            <template x-for="g in goals" :key="g.id">
+                                <option :value="g.id" x-text="`${g.title} (${g.progress_percent}%)`"></option>
+                            </template>
+                        </select>
+                    </div>
+                </template>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">
+                        Подробное описание / заметка
+                        <span class="text-slate-500 font-normal">(что, где и зачем куплено или отложено)</span>
+                    </label>
+                    <textarea 
+                        x-model="txForm.note" 
+                        rows="2" 
+                        placeholder="Например: Супермаркет, продукты на неделю или карманные расходы"
+                        class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Дата</label>
+                        <input type="date" x-model="txForm.date" required class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Время</label>
+                        <input type="time" x-model="txForm.time" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700/80 text-white text-xs">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-dark-950 font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all">
+                    Записать операцию
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: SET PERSONAL MONTHLY BUDGET -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="modalOpen && modalType === 'budget'" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.away="closeModal" class="w-full max-w-sm bg-dark-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-5 h-5 text-sky-400"></i>
+                    <h3 class="text-base font-bold text-white">Лимит на себя в месяц</h3>
+                </div>
+                <button @click="closeModal" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Задайте ежемесячную сумму для себя. Она автоматически разделится ровно пополам: 
+                <b class="text-sky-300">50% на карту</b> и <b class="text-emerald-300">50% в наличные</b>.
+            </p>
+
+            <form @submit.prevent="saveBudget" class="space-y-4">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Сумма на месяц</label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="number" 
+                            step="any" 
+                            x-model="budgetForm.amount" 
+                            placeholder="1000" 
+                            required 
+                            autofocus
+                            class="w-full text-xl font-bold font-mono px-3 py-2.5 rounded-xl bg-dark-950 border border-slate-700 text-white focus:outline-none focus:border-sky-500"
+                        />
+                        <select x-model="budgetForm.currency" class="px-3 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs font-bold focus:outline-none">
+                            <option value="USD">USD ($)</option>
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="KZT">KZT (₸)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Preview of 50/50 Split -->
+                <div class="p-3 rounded-xl bg-dark-950 border border-slate-800/80 space-y-1.5 text-xs font-mono">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Будет выделено:</span>
+                    <div class="flex items-center justify-between text-sky-400">
+                        <span>💳 50% на Карту:</span>
+                        <b x-text="formatMoney((parseFloat(budgetForm.amount || 0) * 0.5), budgetForm.currency)"></b>
+                    </div>
+                    <div class="flex items-center justify-between text-emerald-400">
+                        <span>💵 50% в Наличку:</span>
+                        <b x-text="formatMoney((parseFloat(budgetForm.amount || 0) * 0.5), budgetForm.currency)"></b>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-400 hover:to-teal-400 text-dark-950 font-bold text-xs shadow-md shadow-sky-500/20 active:scale-[0.98] transition-all">
+                    Сохранить лимит
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: ADD ACCOUNT -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="modalOpen && modalType === 'account'" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.away="closeModal" class="w-full max-w-sm bg-dark-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white">Новый счет / кошелек</h3>
+                <button @click="closeModal" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="submitAccount" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Название счета</label>
+                    <input type="text" x-model="accountForm.name" placeholder="Например: Карта, Наличные USD" required class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Тип счета</label>
+                    <select x-model="accountForm.account_type" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs font-semibold">
+                        <option value="card">💳 Банковская карта</option>
+                        <option value="cash">💵 Наличные деньги</option>
+                        <option value="savings">🏦 Накопления / Сейф</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Основная валюта счета</label>
+                    <select x-model="accountForm.currency" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs font-semibold">
+                        <option value="USD">USD ($ - Доллары США)</option>
+                        <option value="TRY">TRY (₺ - Турецкие лиры)</option>
+                        <option value="KZT">KZT (₸ - Казахские тенге)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Начальный баланс</label>
+                    <input type="number" step="any" x-model="accountForm.balance" placeholder="0.00" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white font-mono text-xs">
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-emerald-500 text-dark-950 font-bold text-xs shadow-md shadow-emerald-500/20">
+                    Создать счет
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: ADD GOAL / INVESTMENT TARGET -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="modalOpen && modalType === 'goal'" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.away="closeModal" class="w-full max-w-sm bg-dark-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white">Новая финансовая цель</h3>
+                <button @click="closeModal" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="submitGoal" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Название цели</label>
+                    <input type="text" x-model="goalForm.title" placeholder="Например: Подушка безопасности, Отпуск" required class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Целевая сумма</label>
+                        <input type="number" step="any" x-model="goalForm.target_amount" required placeholder="5000" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Валюта</label>
+                        <select x-model="goalForm.currency" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs font-semibold">
+                            <option value="USD">USD ($)</option>
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="KZT">KZT (₸)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Уже отложено сейчас</label>
+                    <input type="number" step="any" x-model="goalForm.current_amount" placeholder="0" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white font-mono text-xs">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Заметка / Описание</label>
+                    <input type="text" x-model="goalForm.note" placeholder="Запас на непредвиденные случаи" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs">
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-500/20">
+                    Сохранить цель
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: CONTRIBUTE TO GOAL -->
+    <!-- ========================================== -->
+    <div x-cloak x-show="modalOpen && modalType === 'contribute'" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.away="closeModal" class="w-full max-w-sm bg-dark-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white">Пополнить накопление</h3>
+                <button @click="closeModal" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400">Цель: <b class="text-purple-400" x-text="contributeForm.goal_title"></b></p>
+
+            <form @submit.prevent="submitContribute" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Сумма пополнения</label>
+                    <input type="number" step="any" x-model="contributeForm.amount" required placeholder="0.00" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white font-mono text-base font-bold">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Списать со счета</label>
+                    <select x-model="contributeForm.account_id" class="w-full px-3 py-2 rounded-xl bg-dark-950 border border-slate-700 text-white text-xs">
+                        <option value="">Не списывать со счета</option>
+                        <template x-for="acc in accounts" :key="acc.id">
+                            <option :value="acc.id" x-text="`${acc.name} (${acc.currency})`"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-500/20">
+                    Внести в накопления
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Init Lucide Icons on Render -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

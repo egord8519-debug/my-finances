@@ -1,0 +1,22 @@
+{
+  "name": "Финансы & Инвестиции",
+  "short_name": "Финансы",
+  "description": "Персональный трекер расходов, доходов и инвестиций с поддержкой USD, TRY и KZT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "icons": [
+    {
+      "src": "/static/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#neonGrad)" stroke-width="12" opacity="0.4" />
+  <g filter="url(#glow)">
+    <!-- Dollar sign -->
+    <path d="M220 180 C220 150 292 150 292 200 C292 250 220 262 220 312 C220 362 292 362 292 332" fill="none" stroke="#10b981" stroke-width="28" stroke-linecap="round" />
+    <line x1="256" y1="120" x2="256" y2="392" stroke="#10b981" stroke-width="24" stroke-linecap="round" />
+  </g>
+  <!-- Orbiting dots representing 3 currencies -->
+  <circle cx="160" cy="150" r="16" fill="#f43f5e" /> <!-- TRY -->
+  <circle cx="360" cy="160" r="16" fill="#0ea5e9" /> <!-- KZT -->
+  <circle cx="360" cy="350" r="16" fill="#10b981" /> <!-- USD -->
+</svg>
